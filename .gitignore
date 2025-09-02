@@ -1,0 +1,13 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Arduino build files
+*.hex
+*.bin
+*.elf
+
+# Misc
+.DS_Store
+
