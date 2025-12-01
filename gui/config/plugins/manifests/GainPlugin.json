@@ -1,0 +1,17 @@
+{
+  "plugins": [
+    {
+      "name": "GainPlugin",
+      "uri": "urn:multifx:gainplugin",
+      "channels": "mono",
+      "inputs": [
+        "in"
+      ],
+      "outputs": [
+        "out"
+      ],
+      "bypass": 0,
+      "parameters": []
+    }
+  ]
+}

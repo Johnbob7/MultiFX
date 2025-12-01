@@ -1,0 +1,17 @@
+{
+  "plugins": [
+    {
+      "name": "ChorusPlugin",
+      "uri": "urn:multifx:chorusplugin",
+      "channels": "mono",
+      "inputs": [
+        "in"
+      ],
+      "outputs": [
+        "out"
+      ],
+      "bypass": 0,
+      "parameters": []
+    }
+  ]
+}

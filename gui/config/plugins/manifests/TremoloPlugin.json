@@ -1,0 +1,17 @@
+{
+  "plugins": [
+    {
+      "name": "TremoloPlugin",
+      "uri": "urn:multifx:tremoloplugin",
+      "channels": "mono",
+      "inputs": [
+        "in"
+      ],
+      "outputs": [
+        "out"
+      ],
+      "bypass": 0,
+      "parameters": []
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "plugins": [
+    {
+      "name": "PhaserPlugin",
+      "uri": "urn:multifx:phaserplugin",
+      "channels": "mono",
+      "inputs": [
+        "in"
+      ],
+      "outputs": [
+        "out"
+      ],
+      "bypass": 0,
+      "parameters": []
+    }
+  ]
+}
