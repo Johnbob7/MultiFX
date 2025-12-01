@@ -1,0 +1,17 @@
+{
+  "plugins": [
+    {
+      "name": "SaturationPlugin",
+      "uri": "urn:multifx:saturationplugin",
+      "channels": "mono",
+      "inputs": [
+        "in"
+      ],
+      "outputs": [
+        "out"
+      ],
+      "bypass": 0,
+      "parameters": []
+    }
+  ]
+}

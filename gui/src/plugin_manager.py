@@ -1,5 +1,8 @@
 import json
 import os
+import subprocess
+import sys
+from pathlib import Path
 
 
 class Parameter():
@@ -172,15 +175,58 @@ class PluginManager:
         )
 
 
-def load_plugin_manifests(manifest_dir: str):
+def _maybe_generate_manifests(plugin_root: Path, manifest_dir: Path):
+    if not plugin_root.is_dir():
+        return
+    generator_script = plugin_root.parent.parent / "tools" / "gen_plugin_manifests.py"
+    if not generator_script.is_file():
+        return
+
+    def needs_refresh() -> bool:
+        if not manifest_dir.is_dir():
+            return True
+
+        for child in plugin_root.iterdir():
+            if child.name == "manifests" or not child.is_dir():
+                continue
+            manifest_file = manifest_dir / f"{child.name}.json"
+            metadata_file = child / "metadata.json"
+            if not manifest_file.exists():
+                return True
+            if metadata_file.exists() and metadata_file.stat().st_mtime > manifest_file.stat().st_mtime:
+                return True
+        return False
+
+    if not needs_refresh():
+        return
+
+    try:
+        subprocess.run(
+            [sys.executable, str(generator_script), "--plugin-root", str(plugin_root), "--manifest-dir", str(manifest_dir)],
+            check=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        print(f"Failed to generate manifests: {exc}")
+
+
+def ensure_plugin_manifests(plugin_root: str):
+    plugin_root_path = Path(plugin_root)
+    manifest_dir = plugin_root_path / "manifests"
+    _maybe_generate_manifests(plugin_root_path, manifest_dir)
+
+
+def load_plugin_manifests(plugin_root: str):
     plugins = []
-    if not os.path.isdir(manifest_dir):
+    plugin_root_path = Path(plugin_root)
+    manifest_dir = plugin_root_path / "manifests"
+    _maybe_generate_manifests(plugin_root_path, manifest_dir)
+    if not manifest_dir.is_dir():
         return plugins
 
     for filename in sorted(os.listdir(manifest_dir)):
         if not filename.endswith(".json"):
             continue
-        file_path = os.path.join(manifest_dir, filename)
+        file_path = manifest_dir / filename
         try:
             with open(file_path, "r") as file:
                 data = json.load(file)

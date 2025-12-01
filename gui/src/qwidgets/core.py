@@ -600,9 +600,15 @@ class PluginTable(QWidget):
             plugincounts[plugin.uri] = plugincounts.get(plugin.uri, 0) + 1
 
         catalog_by_uri = {plugin.uri: plugin for plugin in self.plugin_catalog}
+        missing_from_catalog = []
         for plugin in self.plugins.plugins:
             if plugin.uri not in catalog_by_uri:
-                catalog_by_uri[plugin.uri] = plugin.clone()
+                missing_from_catalog.append(plugin)
+
+        if missing_from_catalog:
+            print("Plugins missing from catalog and hidden from Add Plugin menu:")
+            for missing in missing_from_catalog:
+                print(f"  {missing.name} ({missing.uri})")
 
         for plugin in sorted(catalog_by_uri.values(), key=lambda p: p.name):
             count = plugincounts.get(plugin.uri, 0)
