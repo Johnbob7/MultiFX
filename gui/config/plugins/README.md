@@ -53,6 +53,18 @@ Run the generator to refresh manifests in `gui/config/plugins/manifests/`:
 python gui/tools/gen_plugin_manifests.py
 ```
 
+You can optionally ask the generator to auto-populate `parameters` for plugins
+whose `metadata.json` omits them by querying installed LV2 metadata via
+[`python-lilv`](https://drobilla.net/software/lilv):
+
+```bash
+python gui/tools/gen_plugin_manifests.py --discover-parameters
+```
+
+Discovery is best-effort: if `python-lilv` is not available or the requested
+plugin URI cannot be resolved, the generator logs a warning and leaves the
+parameters empty.
+
 The script walks every plugin subdirectory (skipping `manifests/`), normalizes
 metadata, and writes one manifest per plugin. Each manifest is a JSON file with
 this shape:

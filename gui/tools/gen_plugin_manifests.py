@@ -9,7 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Dict, Iterable, List
+from typing import Callable, Dict, Iterable, List, Optional
 
 DEFAULT_METADATA_FILENAME = "metadata.json"
 
@@ -34,6 +34,25 @@ def _load_metadata(plugin_dir: Path, metadata_filename: str) -> Dict:
         "outputs": ["out"],
         "parameters": [],
     }
+
+
+def _node_to_number(node: object) -> Optional[float]:
+    """Best-effort conversion for lilv nodes to floats."""
+
+    if node is None:
+        return None
+    for attr in ("as_float", "as_double", "as_int"):
+        converter = getattr(node, attr, None)
+        if converter is None:
+            continue
+        try:
+            return float(converter())
+        except Exception:
+            continue
+    try:
+        return float(node)
+    except Exception:
+        return None
 
 
 def _normalize_parameters(parameter_data: Iterable[dict]) -> List[dict]:
@@ -71,9 +90,20 @@ def _extract_io(metadata: Dict) -> tuple[list, list]:
     return list(inputs or ["in"]), list(outputs or ["out"])
 
 
-def _normalize_plugin_metadata(plugin_dir: Path, metadata: Dict) -> Dict:
+def _normalize_plugin_metadata(
+    plugin_dir: Path,
+    metadata: Dict,
+    discover_params: Optional[Callable[[str], List[dict]]] = None,
+) -> Dict:
     inputs, outputs = _extract_io(metadata)
     slug = plugin_dir.name
+    parameters = _normalize_parameters(metadata.get("parameters", []))
+    if not parameters and discover_params:
+        uri = metadata.get("uri", f"urn:multifx:{slug.lower()}")
+        try:
+            parameters = discover_params(uri)
+        except Exception as exc:  # noqa: BLE001 - discovery is best-effort
+            print(f"Failed to discover parameters for {uri}: {exc}")
     return {
         "name": metadata.get("name", slug.replace("_", " ")),
         "uri": metadata.get("uri", f"urn:multifx:{slug.lower()}"),
@@ -81,7 +111,7 @@ def _normalize_plugin_metadata(plugin_dir: Path, metadata: Dict) -> Dict:
         "inputs": inputs,
         "outputs": outputs,
         "bypass": metadata.get("bypass", 0),
-        "parameters": _normalize_parameters(metadata.get("parameters", [])),
+        "parameters": parameters,
     }
 
 
@@ -92,12 +122,62 @@ def _iter_plugin_dirs(plugin_root: Path) -> Iterable[Path]:
         yield child
 
 
-def generate_manifests(plugin_root: Path, manifest_dir: Path, metadata_filename: str = DEFAULT_METADATA_FILENAME) -> List[Path]:
+def _maybe_make_lilv_discovery(enabled: bool) -> Optional[Callable[[str], List[dict]]]:
+    if not enabled:
+        return None
+    try:
+        import lilv  # type: ignore
+    except Exception as exc:  # noqa: BLE001 - optional dependency
+        print(f"Parameter discovery requested but lilv is unavailable: {exc}")
+        return None
+
+    world = lilv.World()
+    world.load_all()
+    lv2 = world.ns.lv2
+
+    def discover(uri: str) -> List[dict]:
+        plugin = next((p for p in world.get_all_plugins() if str(p.get_uri()) == uri), None)
+        if plugin is None:
+            print(f"Could not find LV2 plugin with URI {uri} for parameter discovery")
+            return []
+        params: List[dict] = []
+        for port in plugin.get_ports():
+            if not port.is_a(lv2.ControlPort):
+                continue
+            symbol = port.get_symbol()
+            if not symbol:
+                continue
+            name = port.get_name() or symbol
+            default, minimum, maximum = port.get_range()
+            mode = "button" if port.has_property(lv2.toggled) else "dial"
+            params.append(
+                {
+                    "type": "lv2",
+                    "name": name,
+                    "symbol": symbol,
+                    "mode": mode,
+                    "min": _node_to_number(minimum) or 0,
+                    "max": _node_to_number(maximum) or 1,
+                    "default": _node_to_number(default) or 0,
+                }
+            )
+        return params
+
+    return discover
+
+
+def generate_manifests(
+    plugin_root: Path,
+    manifest_dir: Path,
+    metadata_filename: str = DEFAULT_METADATA_FILENAME,
+    discover_parameters: bool = False,
+) -> List[Path]:
     manifest_dir.mkdir(parents=True, exist_ok=True)
     written: List[Path] = []
+    discover = _maybe_make_lilv_discovery(discover_parameters)
     for plugin_dir in _iter_plugin_dirs(plugin_root):
         metadata = _load_metadata(plugin_dir, metadata_filename)
-        plugin_entry = _normalize_plugin_metadata(plugin_dir, metadata)
+        plugin_entry = _normalize_plugin_metadata(plugin_dir, metadata, discover)
         manifest_path = manifest_dir / f"{plugin_dir.name}.json"
         manifest_payload = {"plugins": [plugin_entry]}
         with manifest_path.open("w", encoding="utf-8") as handle:
@@ -127,10 +207,20 @@ def main():
         default=DEFAULT_METADATA_FILENAME,
         help="Metadata filename to look for inside each plugin directory",
     )
+    parser.add_argument(
+        "--discover-parameters",
+        action="store_true",
+        help="Attempt to auto-populate parameters using installed LV2 metadata when metadata.json omits them",
+    )
     args = parser.parse_args()
 
     manifest_dir = args.manifest_dir or args.plugin_root / "manifests"
-    manifest_paths = generate_manifests(args.plugin_root, manifest_dir, args.metadata_filename)
+    manifest_paths = generate_manifests(
+        args.plugin_root,
+        manifest_dir,
+        args.metadata_filename,
+        discover_parameters=args.discover_parameters,
+    )
     print(f"Wrote {len(manifest_paths)} manifest(s) to {manifest_dir}")
 
 
