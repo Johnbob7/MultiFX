@@ -2,6 +2,9 @@ import json
 import os
 
 
+MASTER_CATALOG_FILENAME = "master_catalog.json"
+
+
 class Parameter():
     def __init__(self, type: str, name: str, symbol: str, mode: str,
                  value: float, min: float, max: float):
@@ -173,12 +176,76 @@ class PluginManager:
 
 
 def load_plugin_manifests(manifest_dir: str):
-    plugins = []
-    if not os.path.isdir(manifest_dir):
-        return plugins
+    master_plugins = _load_master_catalog(manifest_dir)
+    if master_plugins is not None:
+        return master_plugins
 
+    return aggregate_plugin_manifests(manifest_dir)
+
+
+def aggregate_plugin_manifests(manifest_dir: str):
+    raw_entries = _load_raw_manifest_entries(manifest_dir)
+    catalog_by_uri = {}
+
+    existing_master = _load_master_catalog(manifest_dir)
+    if existing_master:
+        for plugin in existing_master:
+            catalog_by_uri[plugin.uri] = plugin
+
+    for plugin_data in raw_entries:
+        try:
+            plugin = PluginManager.parse_plugin_data(plugin_data)
+        except ValueError as e:
+            print(f"Skipping plugin during aggregation: {e}")
+            continue
+        catalog_by_uri[plugin.uri] = plugin
+
+    catalog_plugins = list(catalog_by_uri.values())
+    _write_master_catalog(manifest_dir, catalog_plugins)
+
+    return catalog_plugins
+
+
+def _load_master_catalog(manifest_dir: str):
+    if not os.path.isdir(manifest_dir):
+        return None
+
+    catalog_path = os.path.join(manifest_dir, MASTER_CATALOG_FILENAME)
+    if not os.path.isfile(catalog_path):
+        return None
+
+    try:
+        with open(catalog_path, "r") as catalog_file:
+            data = json.load(catalog_file)
+    except json.JSONDecodeError:
+        print(f"Invalid master catalog JSON format: {catalog_path}")
+        return None
+    except FileNotFoundError:
+        return None
+
+    plugin_entries = []
+    if isinstance(data, dict) and "plugins" in data:
+        plugin_entries = data["plugins"]
+    elif isinstance(data, dict):
+        plugin_entries = [data]
+
+    plugins = []
+    for plugin_data in plugin_entries:
+        try:
+            plugins.append(PluginManager.parse_plugin_data(plugin_data))
+        except ValueError as e:
+            print(f"Skipping plugin in master catalog: {e}")
+
+    return plugins
+
+
+def _load_raw_manifest_entries(manifest_dir: str):
+    if not os.path.isdir(manifest_dir):
+        return []
+
+    plugin_entries = []
     for filename in sorted(os.listdir(manifest_dir)):
-        if not filename.endswith(".json"):
+        if not filename.endswith(".json") or filename == MASTER_CATALOG_FILENAME:
             continue
         file_path = os.path.join(manifest_dir, filename)
         try:
@@ -191,16 +258,44 @@ def load_plugin_manifests(manifest_dir: str):
             print(f"Manifest not found: {file_path}")
             continue
 
-        plugin_entries = []
         if isinstance(data, dict) and "plugins" in data:
-            plugin_entries = data["plugins"]
+            plugin_entries.extend(data["plugins"])
         elif isinstance(data, dict):
-            plugin_entries = [data]
+            plugin_entries.append(data)
 
-        for plugin_data in plugin_entries:
-            try:
-                plugins.append(PluginManager.parse_plugin_data(plugin_data))
-            except ValueError as e:
-                print(f"Skipping plugin in {file_path}: {e}")
+    return plugin_entries
 
-    return plugins
+
+def _write_master_catalog(manifest_dir: str, plugins: list[Plugin]):
+    catalog_path = os.path.join(manifest_dir, MASTER_CATALOG_FILENAME)
+
+    os.makedirs(manifest_dir, exist_ok=True)
+
+    catalog = {
+        "plugins": [
+            {
+                "name": plugin.name,
+                "uri": plugin.uri,
+                "bypass": plugin.bypass,
+                "channels": plugin.channels,
+                "inputs": list(plugin.inputs),
+                "outputs": list(plugin.outputs),
+                "parameters": [
+                    {
+                        "type": parameter.type,
+                        "name": parameter.name,
+                        "symbol": parameter.symbol,
+                        "mode": parameter.mode,
+                        "default": parameter.value,
+                        "min": parameter.minimum,
+                        "max": parameter.max,
+                    }
+                    for parameter in plugin.parameters
+                ],
+            }
+            for plugin in sorted(plugins, key=lambda p: p.name)
+        ]
+    }
+
+    with open(catalog_path, "w") as catalog_file:
+        json.dump(catalog, catalog_file, indent=4)
