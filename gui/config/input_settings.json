@@ -1,0 +1,15 @@
+{
+  "network": {
+    "host": "0.0.0.0",
+    "port": 57575,
+    "debounce_ms": 120
+  },
+  "screen": {
+    "width": 480,
+    "height": 800,
+    "orientation": "portrait"
+  },
+  "presets": {
+    "default": ["Default"]
+  }
+}

@@ -26,6 +26,35 @@ from qwidgets.navigation import (
 from qwidgets.floating_window import FloatingWindow, DialogItem
 from qwidgets.plugin_box import PluginBox, AddPluginBox
 from offboard import try_save
+from input_adapter import load_input_settings
+
+
+class StatusIndicator(QLabel):
+    """Small overlay widget for connection state and errors."""
+
+    COLORS = {
+        "info": "#d9edf7",
+        "warn": "#fcf8e3",
+        "error": "#f2dede",
+    }
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setStyleSheet(
+            "QLabel {border: 1px solid #444; padding: 4px;"
+            " border-radius: 4px; background: #d9edf7; color: #111;}"
+        )
+        self.setText("Input: idle")
+        self.adjustSize()
+
+    def update_status(self, message: str, level: str = "info"):
+        color = self.COLORS.get(level, self.COLORS["info"])
+        self.setStyleSheet(
+            "QLabel {border: 1px solid #444; padding: 4px;"
+            f" border-radius: 4px; background: {color}; color: #111;}}"
+        )
+        self.setText(message)
+        self.adjustSize()
 
 modhost = None
 
@@ -33,9 +62,11 @@ modhost = None
 class MainWindow(QWidget):
     stack: QStackedWidget = None
 
-    def __init__(self):
+    def __init__(self, input_adapter=None, input_settings=None):
         super().__init__()
         self.setGeometry(0, 0, SCREEN_W, SCREEN_H)
+        self.input_adapter = input_adapter
+        self.input_settings = input_settings or load_input_settings()
 
         self.stack = QStackedWidget(self)
         MainWindow.stack = self.stack
@@ -61,6 +92,9 @@ class MainWindow(QWidget):
         )
         self.breadcrumbs.setParent(self)
 
+        self.status_indicator = StatusIndicator(self)
+        self.status_indicator.move(8, 8)
+
         # Create selection screen
         self.start_screen = ProfileSelectWindow(self.launch_board)
         self.stack.addWidget(self.start_screen)
@@ -71,6 +105,12 @@ class MainWindow(QWidget):
         patchThrough(modhost)  # Bypass all before we load plugins
 
         self.show()
+
+        if self.input_adapter:
+            self.input_adapter.actionTriggered.connect(self.handle_input_action)
+            self.input_adapter.statusChanged.connect(
+                self.status_indicator.update_status
+            )
 
     def launch_board(self, selected_profile):
         """Called when a JSON file is selected to load the board"""
@@ -100,6 +140,7 @@ class MainWindow(QWidget):
             board,
             mod_host_manager=modhost,
             restart_callback=self.show_start_screen,
+            input_settings=self.input_settings,
         )
         self.stack.addWidget(self.board_window)
         self.stack.setCurrentWidget(self.board_window)  # Switch view
@@ -132,14 +173,55 @@ class MainWindow(QWidget):
             exit(1)
             return
 
+    def handle_input_action(self, action: str, payload: dict):
+        is_start_screen = self.stack.currentWidget() == self.start_screen
+
+        if action == "profile_next" and is_start_screen:
+            self.start_screen.group.goNext()
+            self.start_screen.update_continues()
+        elif action == "profile_prev" and is_start_screen:
+            self.start_screen.group.goPrev()
+            self.start_screen.update_continues()
+        elif action == "profile_select" and is_start_screen:
+            self.launch_board(self.start_screen.group.curItem().id)
+        elif action == "preset_next":
+            if self.board_window is not None:
+                self.board_window.cycle_preset(1)
+            else:
+                self.status_indicator.update_status(
+                    "Preset change ignored: no board loaded", "warn"
+                )
+        elif action == "preset_prev":
+            if self.board_window is not None:
+                self.board_window.cycle_preset(-1)
+            else:
+                self.status_indicator.update_status(
+                    "Preset change ignored: no board loaded", "warn"
+                )
+        elif action == "footswitch":
+            if self.board_window is not None:
+                slot = payload.get("slot", self.board_window.curIndex())
+                if slot is not None:
+                    self.board_window.changeBypass(int(slot))
+            else:
+                self.status_indicator.update_status(
+                    "Footswitch ignored: no board loaded", "warn"
+                )
+        else:
+            self.status_indicator.update_status(
+                f"Unhandled input action '{action}'", "warn"
+            )
+
 
 class BoardWindow(QWidget):
     def __init__(
-            self, manager: PluginManager, mod_host_manager, restart_callback):
+            self, manager: PluginManager, mod_host_manager, restart_callback,
+            input_settings=None):
         super().__init__()
         self.plugins = manager
         self.mod_host_manager = mod_host_manager
         self.restart_callback = restart_callback
+        self.input_settings = input_settings or {}
         self.backgroundColor = color_background
 
         self.param_page = 0
@@ -155,7 +237,37 @@ class BoardWindow(QWidget):
         self.pluginbox = BoxOfPlugins(self.plugins)
         self.pluginbox.setParent(self)
 
+        self.preset_state = self._init_preset_state()
+
         self.setFocusPolicy(Qt.StrongFocus)
+
+    def _init_preset_state(self):
+        preset_config = self.input_settings.get("presets", {})
+        default_presets = preset_config.get("default", ["Default"])
+        state = {}
+        for idx, plugin in enumerate(self.plugins.plugins):
+            names = preset_config.get(plugin.name, default_presets)
+            state[idx] = {"names": names, "index": 0}
+            if idx < len(self.pluginbox.boxes):
+                self.pluginbox.boxes[idx].preset_name = names[0]
+                self.pluginbox.boxes[idx].setLabel(names[0])
+        return state
+
+    def cycle_preset(self, delta: int):
+        index = self.curIndex()
+        if index is None:
+            return
+        state = self.preset_state.get(index)
+        if not state:
+            return
+        names = state.get("names", ["Default"])
+        if not names:
+            names = ["Default"]
+        state["index"] = (state.get("index", 0) + delta) % len(names)
+        name = names[state["index"]]
+        box = self.pluginbox.boxes[index]
+        box.preset_name = name
+        box.setLabel(f"< {name} >" if box.hovered else name)
 
     def keyPressEvent(self, event):
         key = event.key()
@@ -362,6 +474,12 @@ class BoardWindow(QWidget):
         # hover new item
         newbox.hover()
         self.pluginbox.scroll_group.pos = n
+        preset_config = self.input_settings.get("presets", {})
+        names = preset_config.get(plugin.name,
+                                  preset_config.get("default", ["Default"]))
+        self.preset_state[n] = {"names": names, "index": 0}
+        newbox.preset_name = names[0]
+        newbox.setLabel(names[0])
         # add to mod-host
         maxInstanceNum = n
         for item in self.pluginbox.scroll_group.items:
