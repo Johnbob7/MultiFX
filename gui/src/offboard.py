@@ -2,8 +2,9 @@
 import fs
 import fs.base
 import os
-from utils import config_dir, plugins_dir, profiles_dir, root_dir
 import time
+import plugin_manager
+from utils import config_dir, plugins_dir, profiles_dir, root_dir
 
 SCAN_FOR_DIR: str = "multifx"
 
@@ -57,6 +58,8 @@ def try_load() -> bool:
 
     copy_subdir(extcfg_fs, incfg_fs, PROFILES_FOLDER)
     copy_subdir(extcfg_fs, incfg_fs, PLUGINS_FOLDER)
+
+    plugin_manager.aggregate_plugin_manifests(plugins_dir)
 
     return True
 
