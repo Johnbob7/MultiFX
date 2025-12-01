@@ -1,0 +1,17 @@
+{
+  "plugins": [
+    {
+      "name": "EchoPlugin",
+      "uri": "urn:multifx:echoplugin",
+      "channels": "mono",
+      "inputs": [
+        "in"
+      ],
+      "outputs": [
+        "out"
+      ],
+      "bypass": 0,
+      "parameters": []
+    }
+  ]
+}

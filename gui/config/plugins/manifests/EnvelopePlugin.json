@@ -1,0 +1,17 @@
+{
+  "plugins": [
+    {
+      "name": "EnvelopePlugin",
+      "uri": "urn:multifx:envelopeplugin",
+      "channels": "mono",
+      "inputs": [
+        "in"
+      ],
+      "outputs": [
+        "out"
+      ],
+      "bypass": 0,
+      "parameters": []
+    }
+  ]
+}

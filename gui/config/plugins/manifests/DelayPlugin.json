@@ -1,0 +1,17 @@
+{
+  "plugins": [
+    {
+      "name": "DelayPlugin",
+      "uri": "urn:multifx:delayplugin",
+      "channels": "mono",
+      "inputs": [
+        "in"
+      ],
+      "outputs": [
+        "out"
+      ],
+      "bypass": 0,
+      "parameters": []
+    }
+  ]
+}

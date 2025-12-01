@@ -2,7 +2,7 @@
     "plugins" : [
         {
             "name" : "Chorus",
-            "uri" : "https://github.com/AnnaAndres28/PedalboardPlugins/tree/main/ChorusPlugin/ChorusJUCE",
+            "uri" : "https://github.com/AnnaAndres28/PedalboardPlugins/tree/main/ChorusPlugin",
             "bypass" : 0,
             "channels" : "stereo",
             "inputs" : [
@@ -17,7 +17,7 @@
                 {
                     "type" : "plug",
                     "name" : "Gain",
-                    "symbol" : "https://github.com/AnnaAndres28/PedalboardPlugins/tree/main/ChorusPlugin/ChorusJUCE:gain",
+                    "symbol" : "https://github.com/AnnaAndres28/PedalboardPlugins/tree/main/ChorusPlugin:gain",
                     "mode" : "dial",
                     "default" : 0.5,
                     "min" : 0,
@@ -26,7 +26,7 @@
                 {
                     "type" : "plug",
                     "name" : "Rate",
-                    "symbol" : "https://github.com/AnnaAndres28/PedalboardPlugins/tree/main/ChorusPlugin/ChorusJUCE:rate",
+                    "symbol" : "https://github.com/AnnaAndres28/PedalboardPlugins/tree/main/ChorusPlugin:rate",
                     "mode" : "dial",
                     "default" : 2,
                     "min" : 0,
@@ -35,7 +35,7 @@
                 {
                     "type" : "plug",
                     "name" : "Depth",
-                    "symbol" : "https://github.com/AnnaAndres28/PedalboardPlugins/tree/main/ChorusPlugin/ChorusJUCE:depth",
+                    "symbol" : "https://github.com/AnnaAndres28/PedalboardPlugins/tree/main/ChorusPlugin:depth",
                     "mode" : "dial",
                     "default" : 0.2,
                     "min" : 0,
@@ -44,7 +44,7 @@
                 {
                     "type" : "plug",
                     "name" : "Delay",
-                    "symbol" : "https://github.com/AnnaAndres28/PedalboardPlugins/tree/main/ChorusPlugin/ChorusJUCE:delay",
+                    "symbol" : "https://github.com/AnnaAndres28/PedalboardPlugins/tree/main/ChorusPlugin:delay",
                     "mode" : "dial",
                     "default" : 7,
                     "min" : 1,
@@ -53,7 +53,7 @@
                 {
                     "type" : "plug",
                     "name" : "FeedBack",
-                    "symbol" : "https://github.com/AnnaAndres28/PedalboardPlugins/tree/main/ChorusPlugin/ChorusJUCE:feedback",
+                    "symbol" : "https://github.com/AnnaAndres28/PedalboardPlugins/tree/main/ChorusPlugin:feedback",
                     "mode" : "dial",
                     "default" : 0.2,
                     "min" : 0,
@@ -62,7 +62,7 @@
                 {
                     "type" : "plug",
                     "name" : "Mix",
-                    "symbol" : "https://github.com/AnnaAndres28/PedalboardPlugins/tree/main/ChorusPlugin/ChorusJUCE:mix",
+                    "symbol" : "https://github.com/AnnaAndres28/PedalboardPlugins/tree/main/ChorusPlugin:mix",
                     "mode" : "dial",
                     "default" : 0.5,
                     "min" : 0,

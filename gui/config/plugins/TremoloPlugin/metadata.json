@@ -1,0 +1,12 @@
+{
+  "name": "Tremolo",
+  "uri": "https://github.com/AnnaAndres28/PedalboardPlugins/tree/main/TremoloPlugin",
+  "channels": "stereo",
+  "inputs": ["audio_in_1", "audio_in_2"],
+  "outputs": ["audio_out_1", "audio_out_2"],
+  "parameters": [
+    {"symbol": "gain", "name": "Gain", "type": "plug", "mode": "dial", "default": 1, "min": 0, "max": 2},
+    {"symbol": "rate", "name": "Rate", "type": "plug", "mode": "dial", "default": 2, "min": 0, "max": 20},
+    {"symbol": "depth", "name": "Depth", "type": "plug", "mode": "dial", "default": 0.2, "min": 0, "max": 1}
+  ]
+}

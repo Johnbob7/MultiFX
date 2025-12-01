@@ -1,0 +1,74 @@
+{
+  "plugins": [
+    {
+      "name": "Distortion",
+      "uri": "https://github.com/AnnaAndres28/PedalboardPlugins/tree/main/DistortionPlugin",
+      "channels": "stereo",
+      "inputs": [
+        "audio_in_1",
+        "audio_in_2"
+      ],
+      "outputs": [
+        "audio_out_1",
+        "audio_out_2"
+      ],
+      "bypass": 0,
+      "parameters": [
+        {
+          "type": "plug",
+          "name": "Gain",
+          "symbol": "gain",
+          "mode": "dial",
+          "min": 0,
+          "max": 3,
+          "default": 0.5
+        },
+        {
+          "type": "plug",
+          "name": "Mode",
+          "symbol": "mode",
+          "mode": "selector",
+          "min": 0,
+          "max": 5,
+          "default": 0
+        },
+        {
+          "type": "plug",
+          "name": "Soft Clip 1",
+          "symbol": "sc1",
+          "mode": "dial",
+          "min": 1,
+          "max": 10,
+          "default": 1
+        },
+        {
+          "type": "plug",
+          "name": "Soft Clip 2",
+          "symbol": "sc2",
+          "mode": "dial",
+          "min": 0,
+          "max": 0.333333,
+          "default": 0.33
+        },
+        {
+          "type": "plug",
+          "name": "Soft Clip 3",
+          "symbol": "sc3",
+          "mode": "dial",
+          "min": 0,
+          "max": 3,
+          "default": 0.5
+        },
+        {
+          "type": "plug",
+          "name": "Soft Clip 4",
+          "symbol": "sc4",
+          "mode": "dial",
+          "min": 1,
+          "max": 5,
+          "default": 3
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "Chorus",
+  "uri": "https://github.com/AnnaAndres28/PedalboardPlugins/tree/main/ChorusPlugin",
+  "channels": "stereo",
+  "inputs": ["audio_in_1", "audio_in_2"],
+  "outputs": ["audio_out_1", "audio_out_2"],
+  "parameters": [
+    {"symbol": "gain", "name": "Gain", "type": "plug", "mode": "dial", "default": 0.5, "min": 0, "max": 1},
+    {"symbol": "rate", "name": "Rate", "type": "plug", "mode": "dial", "default": 5, "min": 0, "max": 10},
+    {"symbol": "depth", "name": "Depth", "type": "plug", "mode": "dial", "default": 0.5, "min": 0, "max": 1},
+    {"symbol": "delay", "name": "Delay", "type": "plug", "mode": "dial", "default": 0.03, "min": 0.01, "max": 0.1},
+    {"symbol": "feedback", "name": "FeedBack", "type": "plug", "mode": "dial", "default": 0.2, "min": 0, "max": 1},
+    {"symbol": "mix", "name": "Mix", "type": "plug", "mode": "dial", "default": 0.5, "min": 0, "max": 1}
+  ]
+}
