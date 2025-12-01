@@ -4,7 +4,7 @@ import os
 from PyQt5.QtWidgets import QWidget, QStackedWidget, QVBoxLayout, QLabel
 from PyQt5.QtGui import QPainter, QPen
 from PyQt5.QtCore import Qt, QRect, QLine
-from plugin_manager import PluginManager, Plugin
+from plugin_manager import PluginManager, Plugin, load_plugin_manifests
 from modhostmanager import (
     connectToModHost, setUpPlugins, setUpPatch, verifyParameters,
     updateBypass, startModHost, patchThrough, removeFirst, removeMiddle,
@@ -16,7 +16,7 @@ from styles import (
     ScrollBarStyle, color_background, ControlDisplayStyle,
     BreadcrumbsBarStyle, styles_tabletitle, styles_tableitem
 )
-from utils import config_dir, profiles_dir
+from utils import config_dir, plugins_dir, profiles_dir
 from qwidgets.parameter_widgets import ParameterPanel
 from qwidgets.controls import ControlDisplay, RotaryEncoder
 from qwidgets.graphics_utils import SCREEN_H, SCREEN_W
@@ -571,6 +571,7 @@ class PluginTable(QWidget):
             int((1 - BreadcrumbsBarStyle.REL_H) * SCREEN_H)
         )
         self.plugins = manager
+        self.plugin_catalog = load_plugin_manifests(plugins_dir)
         self.back_callback = back_callback
         self.add_callback = add_callback
         self.setFocusPolicy(Qt.StrongFocus)
@@ -594,17 +595,18 @@ class PluginTable(QWidget):
         self.scroll_bar = ScrollBar(RotaryEncoder.TOP)
         self.scroll_bar.setParent(self)
         items = []
-        # count number of plugins and place them in
         plugincounts = {}
         for plugin in self.plugins.plugins:
-            if plugin.uri in map(lambda p: p.uri, plugincounts):
-                plugincounts[plugin] += 1
-            else:
-                plugincounts[plugin] = 1
-        # TODO: add items not currently on board with value 0
-        # TODO: replace iterator with list of total plugins and # in board
-        for key, value in sorted(plugincounts.items(), key=lambda x: x[0].name):
-            items.append(PluginTableEntry(key, value, self))
+            plugincounts[plugin.uri] = plugincounts.get(plugin.uri, 0) + 1
+
+        catalog_by_uri = {plugin.uri: plugin for plugin in self.plugin_catalog}
+        for plugin in self.plugins.plugins:
+            if plugin.uri not in catalog_by_uri:
+                catalog_by_uri[plugin.uri] = plugin.clone()
+
+        for plugin in sorted(catalog_by_uri.values(), key=lambda p: p.name):
+            count = plugincounts.get(plugin.uri, 0)
+            items.append(PluginTableEntry(plugin, count, self))
         self.scroll_group = ScrollGroup(
             self.PAGE_SIZE, RotaryEncoder.TOP, items, self.scroll_bar
         )
@@ -637,7 +639,7 @@ class PluginTable(QWidget):
             case RotaryEncoder.TOP.keyLeft:
                 self.scroll_group.goPrev()
             case RotaryEncoder.TOP.keyPress:
-                self.add_callback(self.scroll_group.curItem().plugin)
+                self.add_callback(self.scroll_group.curItem().plugin.clone())
                 self.back_callback()
             case RotaryEncoder.TOP.keyRight:
                 self.scroll_group.goNext()
