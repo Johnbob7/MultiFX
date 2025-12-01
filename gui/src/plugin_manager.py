@@ -23,8 +23,18 @@ class Parameter():
 
 
 class Plugin():
-    def __init__(self, name: str, uri: str, channels: str, inputs: list,
-                 outputs: list, bypass: float = 0, paramters: list = None):
+    def __init__(
+        self,
+        name: str,
+        uri: str,
+        channels: str,
+        inputs: list,
+        outputs: list,
+        bypass: float = 0,
+        paramters: list = None,
+        category: str | None = None,
+        description: str | None = None,
+    ):
         self.name = name
         self.uri = uri
         self.bypass = bypass
@@ -33,6 +43,8 @@ class Plugin():
         self.outputs = outputs
         # initalize parameters if there are any otherwise initalize an empty list
         self.parameters = paramters if paramters else []
+        self.category = category
+        self.description = description
 
     def add_parameter(self, parameter: Parameter):
         self.parameters.append(parameter)
@@ -45,6 +57,8 @@ class Plugin():
             inputs=list(self.inputs),
             outputs=list(self.outputs),
             bypass=self.bypass,
+            category=self.category,
+            description=self.description,
             paramters=[
                 Parameter(
                     type=param.type,
@@ -144,6 +158,8 @@ class PluginManager:
         channels = plugin_data.get("channels", "mono")
         inputs = plugin_data.get("inputs", ["in"])
         outputs = plugin_data.get("outputs", ["out"])
+        category = plugin_data.get("category")
+        description = plugin_data.get("description")
 
         parameters = []
 
@@ -168,6 +184,8 @@ class PluginManager:
             channels=channels,
             inputs=inputs,
             outputs=outputs,
+            category=category,
+            description=description,
             paramters=parameters
         )
 
