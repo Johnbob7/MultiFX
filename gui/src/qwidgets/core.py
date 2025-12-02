@@ -661,16 +661,31 @@ class PluginTableEntry(ScrollItem):
         self.name_label = QLabel(plugin.name, self)
         self.name_label.setStyleSheet(styles_tableitem)
         self.name_label.adjustSize()
-        # pad and center
-        self.name_label.move(PluginTable.PADDING,
-                             self.height()//2 - self.name_label.height()//2)
+        self.name_label.move(
+            PluginTable.PADDING,
+            PluginTable.PADDING,
+        )
+
+        meta_text = self._format_metadata(plugin)
+        self.meta_label = QLabel(meta_text, self)
+        self.meta_label.setStyleSheet(styles_tableitem)
+        self.meta_label.setWordWrap(True)
+        self.meta_label.setFixedWidth(
+            self.table.col2title.x() - 2 * PluginTable.PADDING
+        )
+        self.meta_label.adjustSize()
+        self.meta_label.move(
+            PluginTable.PADDING,
+            self.name_label.y() + self.name_label.height(),
+        )
 
         self.count_label = QLabel(str(count), self)
         self.count_label.setStyleSheet(styles_tableitem)
         self.count_label.adjustSize()
-        # pad and center
-        self.count_label.move(self.table.col2title.x(),
-                              self.height()//2 - self.count_label.height()//2)
+        self.count_label.move(
+            self.table.col2title.x(),
+            self.height() // 2 - self.count_label.height() // 2,
+        )
 
     def paintEvent(self, event):
         super().paintEvent(event)
@@ -683,3 +698,13 @@ class PluginTableEntry(ScrollItem):
         x = self.table.col2title.x() - PluginTable.PADDING
         seperator = QLine(x, 0, x, y)
         painter.drawLine(seperator)
+
+    def _format_metadata(self, plugin: Plugin):
+        parts = []
+        if plugin.category:
+            parts.append(plugin.category)
+        if plugin.description:
+            parts.append(plugin.description)
+        if not parts:
+            return ""
+        return " • ".join(parts)
