@@ -1,9 +1,9 @@
 """Core widgets for the MultiFX GUI"""
 
 import os
-from PyQt5.QtWidgets import QWidget, QStackedWidget, QVBoxLayout, QLabel
+from PyQt5.QtWidgets import QApplication, QWidget, QStackedWidget, QVBoxLayout, QLabel
 from PyQt5.QtGui import QPainter, QPen
-from PyQt5.QtCore import Qt, QRect, QLine, QTimer
+from PyQt5.QtCore import Qt, QRect, QLine, QTimer, QEvent
 from plugin_manager import PluginManager, Plugin
 from modhostmanager import (
     connectToModHost, setUpPlugins, setUpPatch, verifyParameters,
@@ -24,6 +24,7 @@ from qwidgets.navigation import (
     BreadcrumbsBar, ScrollBar, ScrollItem, ScrollGroup
 )
 from qwidgets.floating_window import FloatingWindow, DialogItem
+from qwidgets.nerd_menu import NerdMenu
 from qwidgets.plugin_box import PluginBox, AddPluginBox
 from offboard import try_save
 
@@ -71,6 +72,49 @@ class MainWindow(QWidget):
         patchThrough(modhost)  # Bypass all before we load plugins
 
         self.show()
+
+        self.nerd_menu: NerdMenu | None = None
+        QApplication.instance().installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        if event.type() == QEvent.KeyPress and event.key() == Qt.Key_N:
+            self.toggle_nerd_menu()
+            return True
+        return super().eventFilter(obj, event)
+
+    def toggle_nerd_menu(self):
+        if self.nerd_menu is None:
+            self.show_nerd_menu()
+        else:
+            self.hide_nerd_menu()
+
+    def show_nerd_menu(self):
+        if self.nerd_menu is not None:
+            return
+        self.nerd_menu = NerdMenu(self.hide_nerd_menu, self._nerd_menu_context)
+        self.nerd_menu.setParent(self)
+        self.nerd_menu.show()
+        self.nerd_menu.raise_()
+        self.nerd_menu.setFocus()
+
+    def hide_nerd_menu(self):
+        if self.nerd_menu is None:
+            return
+        self.nerd_menu.deleteLater()
+        self.nerd_menu = None
+        current = self.stack.currentWidget()
+        if current is not None:
+            current.setFocus()
+
+    def _nerd_menu_context(self):
+        context = {
+            "Active Profile": "No board loaded",
+            "Plugins Loaded": "0",
+        }
+        if self.board_window is not None:
+            context["Active Profile"] = self.board_window.profile_name
+            context["Plugins Loaded"] = str(len(self.board_window.plugins.plugins))
+        return context
 
     def launch_board(self, selected_profile):
         """Called when a JSON file is selected to load the board"""
